@@ -1,3 +1,6 @@
+// Copyright 2018 Granitic. All rights reserved.
+// Use of this source code is governed by an Apache 2.0 license that can be found in the LICENSE file at the root of this project.
+
 package hprose_go_nats
 
 import (
@@ -16,12 +19,12 @@ type NatsServer struct {
 	queue       chan *nats.Msg
 	signal      chan os.Signal
 	uri         string
-	opt         *NatsServerOption
+	opt         *NatsOption
 	contextPool sync.Pool
 	workerPool  *rpc.WorkerPool
 }
 
-func NewNatsServer(opt *NatsServerOption) rpc.Server {
+func NewServer(opt *NatsOption) rpc.Server {
 	server := &NatsServer{
 		opt: opt,
 		uri: strings.Join(opt.uri, ","),

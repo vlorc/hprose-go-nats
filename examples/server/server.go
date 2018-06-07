@@ -1,12 +1,12 @@
 package main
 
 import (
+	rpc "github.com/vlorc/hprose-go-nats"
 	"log"
-	rpc "worker/hprose-go-nats"
 )
 
 func main() {
-	server := rpc.NewNatsServer(rpc.Option(rpc.Uri("nats://localhost:4222?topic=cnmb")))
+	server := rpc.NewServer(rpc.NewOption(rpc.Uri("nats://localhost:4222?topic=test&group=balancer")))
 	server.AddFunction("hello", func(msg string) string {
 		log.Print("hello: ", msg)
 		return "hi bitch!"

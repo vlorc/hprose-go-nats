@@ -1,3 +1,6 @@
+// Copyright 2018 Granitic. All rights reserved.
+// Use of this source code is governed by an Apache 2.0 license that can be found in the LICENSE file at the root of this project.
+
 package hprose_go_nats
 
 import (
@@ -5,8 +8,6 @@ import (
 	"sync"
 	"sync/atomic"
 )
-
-var ERROR_TIMEOUT = NewTimeout("request timeout")
 
 type Pool struct {
 	seq   uint64
@@ -65,9 +66,7 @@ func (p *Pool) get(ttl int64) *Request {
 		wait: make(chan struct{}),
 	}
 	if ttl > 0 {
-		req.timeout = timer.NewTimerTable(func() {
-			p.Push(req.Id(), nil, ERROR_TIMEOUT)
-		}, ttl)
+		req.timeout = timer.NewTimerTable(func() { p.Push(req.Id(), nil, ErrTimeout) }, ttl)
 		p.wheel.Add(req.timeout)
 		p.wheel.Start()
 	}
