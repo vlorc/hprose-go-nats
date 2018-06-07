@@ -54,8 +54,8 @@ func (nc *NatsClient) worker() {
 
 func (nc *NatsClient) sendRequest(data []byte, ctx *rpc.ClientContext) ([]byte, error) {
 	req := nc.pool.Get(nc.opt.ttl)
-	reply := nc.opt.id + req.String()
-	if err := nc.conn.PublishRequest(nc.opt.topic, reply, data); nil != err {
+	defer nc.pool.Put(req)
+	if err := nc.conn.PublishRequest(nc.opt.topic, nc.opt.id+req.String(), data); nil != err {
 		nc.pool.Remove(req.Id())
 		return nil, err
 	}
@@ -63,13 +63,14 @@ func (nc *NatsClient) sendRequest(data []byte, ctx *rpc.ClientContext) ([]byte, 
 }
 
 func (nc *NatsClient) ready() *NatsClient {
+	if nc.url == nc.BaseClient.URL() {
+		return nc
+	}
+	nc.lock.Lock()
+	defer nc.lock.Unlock()
 	if nc.url != nc.BaseClient.URL() {
-		nc.lock.Lock()
-		if nc.url != nc.BaseClient.URL() {
-			nc.init()
-			nc.url = nc.BaseClient.URL()
-		}
-		nc.lock.Unlock()
+		nc.init()
+		nc.url = nc.BaseClient.URL()
 	}
 	return nc
 }
@@ -120,8 +121,7 @@ func (nc *NatsClient) connect() {
 	if nc.conn, err = nats.Connect(nc.opt.uri[0], nc.opt.options...); nil != err {
 		return
 	}
-	_, err = nc.conn.ChanSubscribe(nc.opt.id+".*", nc.queue)
-	if nil != err {
+	if _, err = nc.conn.ChanSubscribe(nc.opt.id+".*", nc.queue); nil != err {
 		return
 	}
 	nc.uri = nc.BaseClient.URI()

@@ -22,11 +22,12 @@ func (r *Request) Close() {
 	}
 }
 
-func (r *Request) Reset() {
+func (r *Request) Reset() *Request {
 	r.wait = nil
 	r.timeout = nil
 	r.data = nil
 	r.err = nil
+	return r
 }
 
 func (r *Request) String() string {

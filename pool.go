@@ -14,19 +14,19 @@ type Pool struct {
 	lock  sync.Mutex
 	table map[Sequence]*Request
 	wheel *timer.TimingWheel
+	pool  sync.Pool
 }
 
 func NewPool() *Pool {
-	p := &Pool{
+	return &Pool{
 		table: make(map[Sequence]*Request),
 		wheel: timer.Default(),
+		pool: sync.Pool{
+			New: func() interface{} {
+				return &Request{}
+			},
+		},
 	}
-
-	return p
-}
-
-func (p *Pool) next() Sequence {
-	return Sequence(atomic.AddUint64(&p.seq, 1))
 }
 
 func (p *Pool) Wheel() *timer.TimingWheel {
@@ -43,7 +43,12 @@ func (p *Pool) Reset(err error) {
 	for _, v := range table {
 		v.err = err
 		v.Close()
+		p.Put(v)
 	}
+}
+
+func (p *Pool) Put(req *Request) {
+	p.pool.Put(req.Reset())
 }
 
 func (p *Pool) Remove(seq Sequence) {
@@ -61,10 +66,9 @@ func (p *Pool) pop(seq Sequence) *Request {
 }
 
 func (p *Pool) get(ttl int64) *Request {
-	req := &Request{
-		seq:  p.next(),
-		wait: make(chan struct{}),
-	}
+	req := p.pool.Get().(*Request)
+	req.seq = Sequence(atomic.AddUint64(&p.seq, 1))
+	req.wait = make(chan struct{})
 	if ttl > 0 {
 		req.timeout = timer.NewTimerTable(func() { p.Push(req.Id(), nil, ErrTimeout) }, ttl)
 		p.wheel.Add(req.timeout)

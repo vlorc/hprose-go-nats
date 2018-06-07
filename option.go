@@ -135,7 +135,6 @@ func Secure(tls ...*tls.Config) func(*NatsOption) {
 func Options(o ...nats.Option) func(*NatsOption) {
 	return func(opt *NatsOption) {
 		if len(o) > 0 {
-			nats.Secure()
 			opt.options = append(opt.options, o...)
 		}
 	}
